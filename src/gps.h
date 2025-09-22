@@ -15,4 +15,10 @@ String gps_get_raw_data();
 String gps_get_time();
 String gps_get_date();
 
+bool gps_is_valid();
+bool gps_location_is_valid();
+bool gps_time_is_valid();
+bool gps_date_is_valid();
+String gps_get_debug_info(); 
+
 #endif

@@ -2,7 +2,7 @@
 
 MPU6050 accelgyro;
 HMC5883L mag;
-Adafruit_BMP085 bmp;
+MS5611 ms5611;
 Adafruit_AS726x ams;
 
 int16_t ax, ay, az;
@@ -20,7 +20,9 @@ void sensors_init() {
     
     accelgyro.initialize();
     mag.initialize();
-    bmp.begin();
+
+    ms5611.begin();
+
     ams.begin();
 
     pinMode(uvSensorsPin, INPUT);
@@ -42,7 +44,18 @@ String getGyroscopeData() {
 }
 
 float getPressure() {
-    return bmp.readPressure();
+    ms5611.read(); 
+    return ms5611.getPressurePascal();
+}
+
+float getAltitude() {
+    ms5611.read(); 
+    float pressure = ms5611.getPressurePascal();
+    float temperature = ms5611.getTemperature();
+    
+    float altitude = 44330.0 * (1.0 - pow(pressure / 101325.0, 0.1903));
+    
+    return altitude;
 }
 
 uint8_t getColorTemperature() {

@@ -1,18 +1,35 @@
 #include "main.h"
 
+Servo esc;
+unsigned long previousMotorMillis = 0;
+bool motorRunning = false;
+unsigned long motorStartTime = 0;
+bool firstStart = true;
+
 void setup() {
   Serial.begin(9600);
+
+  esc.attach(escPin);
+  delay(10);
+  esc.writeMicroseconds(MIN_SIGNAL);
+  delay(5000);
+  
+  previousMotorMillis = millis() - WORK_INTERVAL;
 
   tempBatStart();
   gps_init();
   sensors_init();
+  scanI2C();
 
   Serial1.begin(9600);
+  Serial2.begin(9600);
   pinMode(8, OUTPUT);
   pinMode(9, OUTPUT);
 }
 
 void loop() {
+  motorControl();
+
   gps_update();
 
   float temperature = tempBatData();
@@ -21,7 +38,9 @@ void loop() {
   String magData = getMagnetometerData();
   String accelData = getAccelerometerData();
   String gyroData = getGyroscopeData();
+
   float pressure = getPressure();
+  float altitude = getAltitude();
 
   uint8_t colorTemp = getColorTemperature();
   String colorFormatted = getColorDataFormatted();
@@ -42,6 +61,8 @@ void loop() {
   // Serial.print(current, 3); 
   // Serial.println(" A");
 
+  // // // Serial.println("gg");
+
   // Serial.print("Latitude: "); Serial.println(gps_get_latitude(), 6);
   // Serial.print("Longitude: "); Serial.println(gps_get_longitude(), 6);
   // Serial.print("Altitude: "); Serial.println(gps_get_altitude());
@@ -55,6 +76,8 @@ void loop() {
   // Serial.print("Accelerometer: "); Serial.println(accelData);
   // Serial.print("Gyroscope: "); Serial.println(gyroData);
   // Serial.print("Pressure: "); Serial.print(pressure); Serial.println(" Pa");
+  // Serial.print("getAltitude: "); Serial.print(altitude); Serial.println(" M");
+
   
   // Serial.print("Color Temp: "); Serial.print(colorTemp); Serial.println(" C");
   // // Serial.print("Color Formatted: "); Serial.println(colorFormatted);
@@ -62,18 +85,46 @@ void loop() {
 
   // Serial.print("UV IDENCITY: "); Serial.println(uvIndec());
 
+  Serial2.print("T:" + String(temperature, 2) + ";C:" + String(current, 3) + ";");
+  Serial2.print("La:" + String(gps_get_latitude(), 6) + ";Lo:" + String(gps_get_longitude(), 6));
+
   Serial1.print("T:" + String(temperature, 2) + ";C:" + String(current, 3) + ";");
   Serial1.print("La:" + String(gps_get_latitude(), 6) + ";Lo:" + String(gps_get_longitude(), 6));
   delay(1000);
 
-  Serial1.print("Al:" + String(gps_get_altitude(), 2) + ";M:" + String(magData) + ";");
+  Serial2.print("Al:" + String(altitude, 2) + ";M:" + String(magData) + ";");
+
+  Serial1.print("Al:" + String(altitude, 2) + ";M:" + String(magData) + ";");
   delay(1000);
+
+  Serial2.print("A:" + String(accelData) + ";G:" + String(gyroData));
+
   Serial1.print("A:" + String(accelData) + ";G:" + String(gyroData));
   delay(1000);
+
+  Serial2.print("P:" + String(pressure, 2) + ";CT:" + String(colorTemp) + ";");
+  Serial2.print("CR:" + String(colorRaw) + ";UV:" + String(uvIndec(), 2));
 
   Serial1.print("P:" + String(pressure, 2) + ";CT:" + String(colorTemp) + ";");
   Serial1.print("CR:" + String(colorRaw) + ";UV:" + String(uvIndec(), 2));
   delay(1000);
+}
+
+void motorControl() {
+  unsigned long currentMillis = millis();
+  
+  if ((currentMillis - previousMotorMillis >= WORK_INTERVAL || firstStart) && !motorRunning) {
+    esc.writeMicroseconds(WORK_SIGNAL);
+    motorRunning = true;
+    motorStartTime = currentMillis;
+    previousMotorMillis = currentMillis;
+  }
+  
+  if (motorRunning && (currentMillis - motorStartTime >= WORK_DURATION)) {
+    esc.writeMicroseconds(MIN_SIGNAL);
+    motorRunning = false;
+    firstStart = false;
+  }
 }
 
 void scanI2C() {

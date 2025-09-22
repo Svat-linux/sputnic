@@ -6,7 +6,7 @@
 #include <I2Cdev.h>
 #include <MPU6050.h>
 #include <HMC5883L.h>
-#include <Adafruit_BMP085.h>
+#include <MS5611.h>
 #include <Adafruit_AS726x.h>
 
 #define uvSensorsPin A2
@@ -16,6 +16,7 @@ String getMagnetometerData();
 String getAccelerometerData();
 String getGyroscopeData();
 float getPressure();
+float getAltitude();
 uint8_t getColorTemperature();
 String getColorDataFormatted();
 String getColorDataRaw();
